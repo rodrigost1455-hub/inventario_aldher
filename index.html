@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockBot Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f0e;
+    --bg2:       #141715;
+    --bg3:       #1b1e1c;
+    --border:    #2a2e2b;
+    --border2:   #363b37;
+    --amber:     #f0a500;
+    --amber-dim: #7a5200;
+    --green:     #22c55e;
+    --green-dim: #14532d;
+    --red:       #ef4444;
+    --red-dim:   #7f1d1d;
+    --yellow:    #eab308;
+    --yellow-dim:#713f12;
+    --text:      #e8ede9;
+    --text2:     #8a9189;
+    --text3:     #4a5249;
+    --font-head: 'Rajdhani', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-body: 'Inter', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ─── TOPBAR ─── */
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: var(--font-head);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--amber); }
+  .topbar-right { display: flex; align-items: center; gap: 1.5rem; }
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-green 2s infinite;
+  }
+  .dot.offline { background: var(--red); animation: none; }
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+  }
+  .last-check {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--text3);
+  }
+
+  /* ─── LAYOUT ─── */
+  .container { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+  @media (max-width: 900px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+    .container { padding: 1rem; }
+  }
+
+  /* ─── METRIC CARDS ─── */
+  .metric {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--amber);
+    opacity: 0.6;
+  }
+  .metric.ok::before { background: var(--green); }
+  .metric.warn::before { background: var(--yellow); }
+  .metric.danger::before { background: var(--red); }
+  .metric-label {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 0.5rem;
+  }
+  .metric-value {
+    font-family: var(--font-head);
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text);
+  }
+  .metric-value.green { color: var(--green); }
+  .metric-value.red { color: var(--red); }
+  .metric-value.amber { color: var(--amber); }
+  .metric-sub {
+    font-size: 0.72rem;
+    color: var(--text3);
+    margin-top: 0.4rem;
+    font-family: var(--font-mono);
+  }
+
+  /* ─── PANEL ─── */
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title {
+    font-family: var(--font-head);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text2);
+  }
+  .panel-body { padding: 1.5rem; }
+
+  /* ─── PRODUCT CARDS ─── */
+  .product-list { display: flex; flex-direction: column; gap: 0.75rem; }
+  .product-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    transition: border-color 0.2s;
+  }
+  .product-card:hover { border-color: var(--border2); }
+  .product-card.ok { border-left: 3px solid var(--green); }
+  .product-card.warn { border-left: 3px solid var(--yellow); }
+  .product-card.danger { border-left: 3px solid var(--red); }
+  .product-card.nodata { border-left: 3px solid var(--border2); }
+  .prod-name {
+    font-family: var(--font-head);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+  .prod-sku {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  .prod-right { text-align: right; }
+  .prod-stock {
+    font-family: var(--font-head);
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .prod-stock.green { color: var(--green); }
+  .prod-stock.yellow { color: var(--yellow); }
+  .prod-stock.red { color: var(--red); }
+  .prod-stock.gray { color: var(--text3); }
+  .prod-label {
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-family: var(--font-mono);
+    padding: 2px 8px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+  }
+  .badge.ok { background: var(--green-dim); color: var(--green); }
+  .badge.warn { background: var(--yellow-dim); color: var(--yellow); }
+  .badge.danger { background: var(--red-dim); color: var(--red); }
+  .badge.idle { background: var(--bg); color: var(--text3); border: 1px solid var(--border); }
+
+  /* ─── ALERT LOG ─── */
+  .alert-log { display: flex; flex-direction: column; gap: 0.5rem; max-height: 320px; overflow-y: auto; }
+  .alert-log::-webkit-scrollbar { width: 4px; }
+  .alert-log::-webkit-scrollbar-track { background: var(--bg); }
+  .alert-log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  .alert-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.75rem 1rem;
+    background: var(--bg3);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    font-size: 0.8rem;
+  }
+  .alert-icon { font-size: 0.75rem; margin-top: 2px; }
+  .alert-icon.red { color: var(--red); }
+  .alert-icon.yellow { color: var(--yellow); }
+  .alert-icon.green { color: var(--green); }
+  .alert-msg { color: var(--text2); line-height: 1.4; }
+  .alert-msg strong { color: var(--text); font-weight: 500; }
+  .alert-time { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); white-space: nowrap; }
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text3);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+  }
+
+  /* ─── FORM / CONFIG ─── */
+  .form-group { margin-bottom: 1rem; }
+  .form-label {
+    display: block;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 0.4rem;
+  }
+  .form-input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding: 0.6rem 0.75rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--amber); }
+  .form-input::placeholder { color: var(--text3); }
+  .form-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 0.75rem; align-items: end; margin-bottom: 0.75rem; }
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    font-family: var(--font-head);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0.6rem 1.25rem;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg3); color: var(--text); border-color: var(--amber); }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--amber); color: var(--bg); border-color: var(--amber); }
+  .btn-primary:hover { background: #ffb800; color: var(--bg); border-color: #ffb800; }
+  .btn-danger { border-color: var(--red-dim); color: var(--red); }
+  .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+  .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.7rem; }
+  .btn-icon { padding: 0.35rem 0.5rem; font-size: 0.9rem; line-height: 1; }
+  .btn-group { display: flex; gap: 0.5rem; margin-top: 1rem; }
+
+  /* ─── TABS ─── */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+  .tab {
+    font-family: var(--font-head);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    color: var(--text3);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+  .tab:hover { color: var(--text2); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ─── SCHEDULE ─── */
+  .schedule-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .schedule-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .schedule-time {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--amber);
+    font-weight: 500;
+  }
+  .schedule-label {
+    font-size: 0.75rem;
+    color: var(--text2);
+  }
+
+  /* ─── SECTION DIVIDER ─── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    margin-top: 2rem;
+  }
+  .section-title {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+
+  /* ─── EXPORT BOX ─── */
+  .code-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text2);
+    white-space: pre-wrap;
+    overflow-x: auto;
+    line-height: 1.8;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .code-box .key { color: #7dd3a8; }
+  .code-box .val { color: var(--amber); }
+  .code-box .comment { color: var(--text3); }
+
+  /* ─── TOAST ─── */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--bg2);
+    border: 1px solid var(--amber);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 4px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ─── SEPARATOR ─── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  /* ─── SCROLLBAR GLOBAL ─── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .fadeIn { animation: fadeIn 0.3s ease forwards; }
+
+  /* ─── LINK ─── */
+  a { color: var(--amber); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ─── INTEGRATION GUIDE ─── */
+  .step-list { display: flex; flex-direction: column; gap: 1rem; }
+  .step {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 0.75rem;
+    align-items: start;
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    background: var(--amber-dim);
+    border: 1px solid var(--amber);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--amber);
+    flex-shrink: 0;
+  }
+  .step-text { font-size: 0.82rem; color: var(--text2); padding-top: 4px; line-height: 1.6; }
+  .step-text strong { color: var(--text); font-weight: 500; }
+  .step-text code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--amber);
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── TOP BAR ─── -->
+<div class="topbar">
+  <div class="logo">Stock<span>Bot</span></div>
+  <div class="topbar-right">
+    <div class="status-dot">
+      <div class="dot" id="conn-dot"></div>
+      <span id="conn-label">CONECTADO</span>
+    </div>
+    <div class="last-check" id="last-check-time">Última revisión: —</div>
+  </div>
+</div>
+
+<!-- ─── MAIN ─── -->
+<div class="container">
+
+  <!-- MÉTRICAS RÁPIDAS -->
+  <div class="grid-4" id="metrics-grid">
+    <div class="metric ok">
+      <div class="metric-label">Productos OK</div>
+      <div class="metric-value green" id="m-ok">—</div>
+      <div class="metric-sub">sin alertas</div>
+    </div>
+    <div class="metric warn">
+      <div class="metric-label">Stock Bajo</div>
+      <div class="metric-value amber" id="m-warn">—</div>
+      <div class="metric-sub">por debajo del mínimo</div>
+    </div>
+    <div class="metric danger">
+      <div class="metric-label">Sin Stock</div>
+      <div class="metric-value red" id="m-danger">—</div>
+      <div class="metric-sub">no aparecen en tienda</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Revisiones Hoy</div>
+      <div class="metric-value" id="m-checks">—</div>
+      <div class="metric-sub">de 3 programadas</div>
+    </div>
+  </div>
+
+  <!-- PRODUCTOS + ALERTAS -->
+  <div class="grid-2">
+
+    <!-- Panel Productos -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Estado de Productos</span>
+        <button class="btn btn-sm" onclick="refreshData()">↻ Actualizar</button>
+      </div>
+      <div class="panel-body">
+        <div class="product-list" id="product-list">
+          <div class="empty-state">[ cargando... ]</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel Alertas -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Log de Alertas</span>
+        <button class="btn btn-sm btn-danger" onclick="clearAlerts()">Limpiar</button>
+      </div>
+      <div class="panel-body">
+        <div class="alert-log" id="alert-log">
+          <div class="empty-state">[ sin alertas registradas ]</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── CONFIGURACIÓN ─── -->
+  <div class="section-header">
+    <div class="section-line"></div>
+    <div class="section-title">Configuración</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-body">
+
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('tab-productos')">Productos</button>
+        <button class="tab" onclick="showTab('tab-horarios')">Horarios</button>
+        <button class="tab" onclick="showTab('tab-twilio')">WhatsApp / Twilio</button>
+        <button class="tab" onclick="showTab('tab-integracion')">Integración</button>
+        <button class="tab" onclick="showTab('tab-exportar')">Exportar Config</button>
+      </div>
+
+      <!-- TAB: PRODUCTOS -->
+      <div class="tab-content active" id="tab-productos">
+        <div id="productos-form"></div>
+        <button class="btn btn-primary" onclick="addProductRow()">+ Agregar Producto</button>
+        <div class="btn-group">
+          <button class="btn" onclick="saveConfig()">Guardar Configuración</button>
+        </div>
+      </div>
+
+      <!-- TAB: HORARIOS -->
+      <div class="tab-content" id="tab-horarios">
+        <p style="font-size:0.8rem; color:var(--text2); margin-bottom:1.25rem;">
+          Define las 3 revisiones diarias del bot. El bot revisará stock en estos horarios y enviará alerta si detecta problemas.
+        </p>
+        <div class="schedule-list">
+          <div class="form-row" style="grid-template-columns: auto 1fr; align-items:center; gap:1rem; background:var(--bg3); padding:0.75rem 1rem; border:1px solid var(--border); border-radius:4px;">
+            <div class="schedule-time">Revisión 1</div>
+            <input type="time" class="form-input" id="hora1" value="08:00" style="max-width:140px;">
+          </div>
+          <div class="form-row" style="grid-template-columns: auto 1fr; align-items:center; gap:1rem; background:var(--bg3); padding:0.75rem 1rem; border:1px solid var(--border); border-radius:4px;">
+            <div class="schedule-time">Revisión 2</div>
+            <input type="time" class="form-input" id="hora2" value="13:00" style="max-width:140px;">
+          </div>
+          <div class="form-row" style="grid-template-columns: auto 1fr; align-items:center; gap:1rem; background:var(--bg3); padding:0.75rem 1rem; border:1px solid var(--border); border-radius:4px;">
+            <div class="schedule-time">Revisión 3</div>
+            <input type="time" class="form-input" id="hora3" value="18:00" style="max-width:140px;">
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn" onclick="saveConfig()">Guardar Horarios</button>
+        </div>
+      </div>
+
+      <!-- TAB: TWILIO -->
+      <div class="tab-content" id="tab-twilio">
+        <p style="font-size:0.8rem; color:var(--text2); margin-bottom:1.25rem;">
+          Datos de tu cuenta <a href="https://www.twilio.com" target="_blank">Twilio</a> para el envío de alertas por WhatsApp.
+        </p>
+        <div class="form-row" style="grid-template-columns:1fr 1fr;">
+          <div class="form-group">
+            <label class="form-label">Account SID</label>
+            <input class="form-input" id="t-sid" placeholder="ACxxxxxxxxxxxxxxxx" type="password">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Auth Token</label>
+            <input class="form-input" id="t-token" placeholder="xxxxxxxxxxxxxxxx" type="password">
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr;">
+          <div class="form-group">
+            <label class="form-label">Número Twilio (from)</label>
+            <input class="form-input" id="t-from" placeholder="whatsapp:+14155238886">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tu WhatsApp Business (to)</label>
+            <input class="form-input" id="t-to" placeholder="whatsapp:+5216181234567">
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn" onclick="saveConfig()">Guardar Twilio</button>
+          <button class="btn" onclick="testWhatsApp()">Enviar Prueba</button>
+        </div>
+      </div>
+
+      <!-- TAB: INTEGRACIÓN -->
+      <div class="tab-content" id="tab-integracion">
+        <p style="font-size:0.8rem; color:var(--text2); margin-bottom:1.5rem;">
+          Este dashboard se sincroniza con tu bot de Python vía <strong style="color:var(--text)">JSONBin.io</strong> (gratis).
+          El bot escribe el estado del stock ahí, y el dashboard lo lee en tiempo real.
+        </p>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">
+              Ve a <a href="https://jsonbin.io" target="_blank">jsonbin.io</a> y crea una cuenta gratuita.
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">
+              Crea un nuevo <strong>BIN</strong> con este JSON inicial:
+              <br><br>
+              <code>{"productos":[],"ultima_revision":"—","revisiones_hoy":0,"alertas":[]}</code>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">
+              Copia el <strong>BIN ID</strong> (ej: <code>64abc123def456</code>) y tu <strong>API Key</strong> de JSONBin.
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text">Pega tus datos aquí:</div>
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr; margin-top:1rem;">
+          <div class="form-group">
+            <label class="form-label">JSONBin BIN ID</label>
+            <input class="form-input" id="jb-binid" placeholder="64abc123def456">
+          </div>
+          <div class="form-group">
+            <label class="form-label">JSONBin API Key</label>
+            <input class="form-input" id="jb-apikey" placeholder="$2b$10$..." type="password">
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn" onclick="saveConfig()">Guardar y Conectar</button>
+          <button class="btn" onclick="refreshData()">Probar Conexión</button>
+        </div>
+      </div>
+
+      <!-- TAB: EXPORTAR -->
+      <div class="tab-content" id="tab-exportar">
+        <p style="font-size:0.8rem; color:var(--text2); margin-bottom:1rem;">
+          Copia esta sección y pégala en tu archivo <code style="color:var(--amber)">monitor_stock.py</code> en PythonAnywhere, reemplazando la sección CONFIGURACIÓN.
+        </p>
+        <div class="code-box" id="export-box">[ Guarda tu configuración primero para generar el export ]</div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="copyExport()">Copiar al Portapapeles</button>
+          <button class="btn" onclick="generateExport()">Regenerar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ─── STATE ───
+let config = {
+  productos: [
+    { nombre: "USB 16GB Stylos ST100", sku: "STMUSB2B", minimo: 50 }
+  ],
+  hora1: "08:00", hora2: "13:00", hora3: "18:00",
+  twilio: { sid: "", token: "", from: "whatsapp:+14155238886", to: "" },
+  jsonbin: { binid: "", apikey: "" }
+};
+
+let statusData = null;
+
+// ─── INIT ───
+window.onload = () => {
+  loadConfig();
+  renderProductosForm();
+  refreshData();
+  setInterval(refreshData, 60000);
+};
+
+// ─── CONFIG PERSISTENCE ───
+function loadConfig() {
+  const saved = localStorage.getItem('stockbot_config');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      config = { ...config, ...parsed };
+      if (parsed.twilio) {
+        document.getElementById('t-sid').value   = parsed.twilio.sid || '';
+        document.getElementById('t-token').value = parsed.twilio.token || '';
+        document.getElementById('t-from').value  = parsed.twilio.from || 'whatsapp:+14155238886';
+        document.getElementById('t-to').value    = parsed.twilio.to || '';
+      }
+      if (parsed.jsonbin) {
+        document.getElementById('jb-binid').value  = parsed.jsonbin.binid || '';
+        document.getElementById('jb-apikey').value = parsed.jsonbin.apikey || '';
+      }
+      if (parsed.hora1) document.getElementById('hora1').value = parsed.hora1;
+      if (parsed.hora2) document.getElementById('hora2').value = parsed.hora2;
+      if (parsed.hora3) document.getElementById('hora3').value = parsed.hora3;
+    } catch(e) {}
+  }
+}
+
+function saveConfig() {
+  config.hora1 = document.getElementById('hora1').value;
+  config.hora2 = document.getElementById('hora2').value;
+  config.hora3 = document.getElementById('hora3').value;
+  config.twilio = {
+    sid:   document.getElementById('t-sid').value,
+    token: document.getElementById('t-token').value,
+    from:  document.getElementById('t-from').value,
+    to:    document.getElementById('t-to').value
+  };
+  config.jsonbin = {
+    binid:  document.getElementById('jb-binid').value,
+    apikey: document.getElementById('jb-apikey').value
+  };
+  // Recoger productos del form
+  config.productos = [];
+  document.querySelectorAll('.prod-row').forEach(row => {
+    const n = row.querySelector('.p-nombre').value.trim();
+    const s = row.querySelector('.p-sku').value.trim().toUpperCase();
+    const m = parseInt(row.querySelector('.p-minimo').value) || 10;
+    if (n && s) config.productos.push({ nombre: n, sku: s, minimo: m });
+  });
+  localStorage.setItem('stockbot_config', JSON.stringify(config));
+  generateExport();
+  showToast('✓ Configuración guardada');
+}
+
+// ─── PRODUCTOS FORM ───
+function renderProductosForm() {
+  const container = document.getElementById('productos-form');
+  container.innerHTML = '';
+  config.productos.forEach((p, i) => {
+    container.appendChild(createProductRow(p, i));
+  });
+}
+
+function createProductRow(p = {}, i = 0) {
+  const div = document.createElement('div');
+  div.className = 'form-row prod-row fadeIn';
+  div.dataset.idx = i;
+  div.innerHTML = `
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">Nombre del Producto</label>
+      <input class="form-input p-nombre" value="${p.nombre || ''}" placeholder="USB 16GB Stylos">
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">SKU</label>
+      <input class="form-input p-sku" value="${p.sku || ''}" placeholder="STMUSB2B" style="text-transform:uppercase;">
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">Stock Mínimo</label>
+      <input class="form-input p-minimo" type="number" value="${p.minimo || 10}" min="1">
+    </div>
+    <div style="padding-top:1.4rem;">
+      <button class="btn btn-icon btn-danger" onclick="removeProductRow(this)">✕</button>
+    </div>
+  `;
+  return div;
+}
+
+function addProductRow() {
+  const container = document.getElementById('productos-form');
+  container.appendChild(createProductRow({}, container.children.length));
+}
+
+function removeProductRow(btn) {
+  btn.closest('.prod-row').remove();
+}
+
+// ─── TABS ───
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'tab-exportar') generateExport();
+}
+
+// ─── JSONBIN DATA FETCH ───
+async function refreshData() {
+  const binid  = config.jsonbin?.binid  || document.getElementById('jb-binid')?.value;
+  const apikey = config.jsonbin?.apikey || document.getElementById('jb-apikey')?.value;
+
+  if (!binid || !apikey) {
+    renderDemo();
+    return;
+  }
+
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${binid}/latest`, {
+      headers: { 'X-Master-Key': apikey }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    statusData = data.record;
+    renderStatus(statusData);
+    updateConnStatus(true);
+  } catch(e) {
+    updateConnStatus(false);
+    renderDemo();
+  }
+}
+
+function updateConnStatus(online) {
+  const dot = document.getElementById('conn-dot');
+  const lbl = document.getElementById('conn-label');
+  dot.className = online ? 'dot' : 'dot offline';
+  lbl.textContent = online ? 'CONECTADO' : 'SIN CONEXIÓN';
+}
+
+// ─── RENDER STATUS FROM BOT ───
+function renderStatus(data) {
+  if (!data) return;
+  document.getElementById('last-check-time').textContent = 'Última revisión: ' + (data.ultima_revision || '—');
+  document.getElementById('m-checks').textContent = data.revisiones_hoy ?? '—';
+
+  const prods = data.productos || [];
+  let ok = 0, warn = 0, danger = 0;
+  prods.forEach(p => {
+    if (p.estado === 'ok') ok++;
+    else if (p.estado === 'warn') warn++;
+    else danger++;
+  });
+  document.getElementById('m-ok').textContent = ok;
+  document.getElementById('m-warn').textContent = warn;
+  document.getElementById('m-danger').textContent = danger;
+
+  renderProductList(prods);
+  renderAlertLog(data.alertas || []);
+}
+
+function renderProductList(prods) {
+  const el = document.getElementById('product-list');
+  if (!prods.length) { el.innerHTML = '<div class="empty-state">[ sin datos del bot aún ]</div>'; return; }
+  el.innerHTML = prods.map(p => {
+    const cls = p.estado === 'ok' ? 'ok' : p.estado === 'warn' ? 'warn' : 'danger';
+    const scls = p.estado === 'ok' ? 'green' : p.estado === 'warn' ? 'yellow' : 'red';
+    const badge = p.estado === 'ok' ? 'ok' : p.estado === 'warn' ? 'warn' : 'danger';
+    const badgeText = p.estado === 'ok' ? 'OK' : p.estado === 'warn' ? 'BAJO' : 'SIN STOCK';
+    return `
+      <div class="product-card ${cls} fadeIn">
+        <div>
+          <div class="prod-name">${p.nombre}</div>
+          <div class="prod-sku">${p.sku}</div>
+        </div>
+        <div class="prod-right">
+          <div class="prod-stock ${scls}">${p.stock ?? '—'}</div>
+          <div class="prod-label">unidades</div>
+          <div style="margin-top:4px;"><span class="badge ${badge}">${badgeText}</span></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderAlertLog(alertas) {
+  const el = document.getElementById('alert-log');
+  if (!alertas.length) { el.innerHTML = '<div class="empty-state">[ sin alertas registradas ]</div>'; return; }
+  el.innerHTML = [...alertas].reverse().map(a => {
+    const icon = a.tipo === 'danger' ? '●' : a.tipo === 'warn' ? '◆' : '✓';
+    const icls = a.tipo === 'danger' ? 'red' : a.tipo === 'warn' ? 'yellow' : 'green';
+    return `
+      <div class="alert-item">
+        <div class="alert-icon ${icls}">${icon}</div>
+        <div class="alert-msg"><strong>${a.producto}</strong> — ${a.mensaje}</div>
+        <div class="alert-time">${a.hora}</div>
+      </div>`;
+  }).join('');
+}
+
+// ─── DEMO MODE (sin JSONBin conectado) ───
+function renderDemo() {
+  document.getElementById('last-check-time').textContent = 'Conecta JSONBin para ver datos en vivo';
+  document.getElementById('m-ok').textContent = '—';
+  document.getElementById('m-warn').textContent = '—';
+  document.getElementById('m-danger').textContent = '—';
+  document.getElementById('m-checks').textContent = '—';
+  const el = document.getElementById('product-list');
+  el.innerHTML = config.productos.map(p => `
+    <div class="product-card nodata">
+      <div>
+        <div class="prod-name">${p.nombre}</div>
+        <div class="prod-sku">${p.sku} · mín. ${p.minimo} uds</div>
+      </div>
+      <div class="prod-right">
+        <div class="prod-stock gray">—</div>
+        <div class="prod-label">sin datos</div>
+        <div style="margin-top:4px;"><span class="badge idle">PENDIENTE</span></div>
+      </div>
+    </div>`).join('');
+}
+
+// ─── ALERTS ───
+function clearAlerts() {
+  document.getElementById('alert-log').innerHTML = '<div class="empty-state">[ sin alertas registradas ]</div>';
+  showToast('Log de alertas limpiado');
+}
+
+// ─── EXPORT ───
+function generateExport() {
+  const c = config;
+  const prods = c.productos.map(p =>
+    `    {"nombre": "${p.nombre}", "sku": "${p.sku}", "stock_minimo": ${p.minimo}},`
+  ).join('\n');
+
+  const output = `# ══════════════════════════════════════════
+#  CONFIGURACIÓN GENERADA POR STOCKBOT DASHBOARD
+#  Pega esto en monitor_stock.py reemplazando
+#  la sección CONFIGURACIÓN completa
+# ══════════════════════════════════════════
+
+TWILIO_ACCOUNT_SID = "${c.twilio?.sid || 'TU_ACCOUNT_SID'}"
+TWILIO_AUTH_TOKEN  = "${c.twilio?.token || 'TU_AUTH_TOKEN'}"
+TWILIO_WA_FROM     = "${c.twilio?.from || 'whatsapp:+14155238886'}"
+TU_WHATSAPP        = "${c.twilio?.to || 'whatsapp:+521XXXXXXXXXX'}"
+
+JSONBIN_BIN_ID     = "${c.jsonbin?.binid || 'TU_BIN_ID'}"
+JSONBIN_API_KEY    = "${c.jsonbin?.apikey || 'TU_API_KEY'}"
+
+PRODUCTOS = [
+${prods}
+]
+
+HORA_REVISION_1 = "${c.hora1 || '08:00'}"
+HORA_REVISION_2 = "${c.hora2 || '13:00'}"
+HORA_REVISION_3 = "${c.hora3 || '18:00'}"`;
+
+  document.getElementById('export-box').textContent = output;
+}
+
+function copyExport() {
+  const text = document.getElementById('export-box').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('✓ Copiado al portapapeles'));
+}
+
+// ─── WHATSAPP TEST ───
+function testWhatsApp() {
+  showToast('Para probar WhatsApp, ejecuta el bot con python monitor_stock.py --test');
+}
+
+// ─── TOAST ───
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Init renderizado
+renderProductosForm();
+</script>
+</body>
+</html>
