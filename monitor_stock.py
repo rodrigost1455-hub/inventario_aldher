@@ -30,8 +30,8 @@ TWILIO_AUTH_TOKEN  = "5f62f864a81dce89da7eeb317e6ce069"     # Tu Auth Token
 TWILIO_WA_FROM     = "whatsapp:+17125825720"                # Número Twilio (sandbox)
 TU_WHATSAPP        = "whatsapp:+526182781423"              # Tu WhatsApp Business (con código de país)
 
-JSONBIN_BIN_ID     = "TU_BIN_ID"
-JSONBIN_API_KEY    = "TU_API_KEY"
+JSONBIN_BIN_ID     = "69d67f1110716a4d5de59a14"
+JSONBIN_API_KEY    = "$2a$10$xweLCZiUzNXp1PirKTRpqObqYT7osw0QcDd00FvCOFuSnFZN1ZTMW"
 
 PRODUCTOS = [
     {"nombre": "USB 16GB Stylos ST100", "sku": "STMUSB2B", "stock_minimo": 50},
