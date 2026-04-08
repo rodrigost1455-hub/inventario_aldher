@@ -557,11 +557,11 @@
     <div class="panel-body">
 
       <div class="tabs">
-        <button class="tab active" onclick="showTab('tab-productos')">Productos</button>
-        <button class="tab" onclick="showTab('tab-horarios')">Horarios</button>
-        <button class="tab" onclick="showTab('tab-twilio')">WhatsApp / Twilio</button>
-        <button class="tab" onclick="showTab('tab-integracion')">Integración</button>
-        <button class="tab" onclick="showTab('tab-exportar')">Exportar Config</button>
+        <button class="tab active" onclick="showTab('tab-productos', this)">Productos</button>
+        <button class="tab" onclick="showTab('tab-horarios', this)">Horarios</button>
+        <button class="tab" onclick="showTab('tab-twilio', this)">WhatsApp / Twilio</button>
+        <button class="tab" onclick="showTab('tab-integracion', this)">Integración</button>
+        <button class="tab" onclick="showTab('tab-exportar', this)">Exportar Config</button>
       </div>
 
       <!-- TAB: PRODUCTOS -->
@@ -811,11 +811,11 @@ function removeProductRow(btn) {
 }
 
 // ─── TABS ───
-function showTab(id) {
+function showTab(id, el) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  event.target.classList.add('active');
+  el.classList.add('active');
   if (id === 'tab-exportar') generateExport();
 }
 
@@ -833,22 +833,24 @@ async function refreshData() {
     const res = await fetch(`https://api.jsonbin.io/v3/b/${binid}/latest`, {
       headers: { 'X-Master-Key': apikey }
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (res.status === 401 || res.status === 403) throw new Error('API Key inválida');
+    if (res.status === 404) throw new Error('BIN ID no encontrado');
+    if (!res.ok) throw new Error('Error HTTP ' + res.status);
     const data = await res.json();
     statusData = data.record;
     renderStatus(statusData);
     updateConnStatus(true);
   } catch(e) {
-    updateConnStatus(false);
+    updateConnStatus(false, e.message);
     renderDemo();
   }
 }
 
-function updateConnStatus(online) {
+function updateConnStatus(online, errorMsg) {
   const dot = document.getElementById('conn-dot');
   const lbl = document.getElementById('conn-label');
   dot.className = online ? 'dot' : 'dot offline';
-  lbl.textContent = online ? 'CONECTADO' : 'SIN CONEXIÓN';
+  lbl.textContent = online ? 'CONECTADO' : (errorMsg ? `ERROR: ${errorMsg}` : 'SIN CONEXIÓN');
 }
 
 // ─── RENDER STATUS FROM BOT ───
@@ -933,8 +935,18 @@ function renderDemo() {
 }
 
 // ─── ALERTS ───
-function clearAlerts() {
+async function clearAlerts() {
   document.getElementById('alert-log').innerHTML = '<div class="empty-state">[ sin alertas registradas ]</div>';
+  if (statusData && config.jsonbin?.binid && config.jsonbin?.apikey) {
+    statusData.alertas = [];
+    try {
+      await fetch(`https://api.jsonbin.io/v3/b/${config.jsonbin.binid}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': config.jsonbin.apikey },
+        body: JSON.stringify(statusData)
+      });
+    } catch(e) {}
+  }
   showToast('Log de alertas limpiado');
 }
 
@@ -988,8 +1000,6 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// Init renderizado
-renderProductosForm();
 </script>
 </body>
 </html>

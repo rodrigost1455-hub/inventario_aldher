@@ -10,6 +10,7 @@
 =============================================================
 """
 
+import re
 import requests
 from bs4 import BeautifulSoup
 from twilio.rest import Client
@@ -75,7 +76,6 @@ def obtener_info_producto(sku):
 
         if sku.upper() in page_text.upper():
             resultado["encontrado"] = True
-            import re
             disp = soup.find(string=lambda t: t and "Disponible" in t)
             if disp:
                 nums = re.findall(r'\d+', str(disp))
@@ -135,9 +135,15 @@ def registrar_alerta(tipo, producto, mensaje):
 
 def revisar_stock():
     ahora = datetime.now().strftime("%d/%m/%Y %H:%M")
+    hora_actual = datetime.now().strftime("%H:%M")
     print(f"\n{'═'*52}")
     print(f"  🔍 Revisión iniciada: {ahora}")
     print(f"{'═'*52}")
+
+    fecha_actual = datetime.now().strftime("%d/%m/%Y")
+    if estado_global.get("fecha_actual") != fecha_actual:
+        estado_global["revisiones_hoy"] = 0
+        estado_global["fecha_actual"] = fecha_actual
 
     estado_global["ultima_revision"] = ahora
     estado_global["revisiones_hoy"] += 1
@@ -165,8 +171,8 @@ def revisar_stock():
             alertas_msg.append(f"⚠️ ERROR — {nombre}: {info['error']}")
             continue
 
-        if not info["encontrado"]:
-            print(f"  🚨 SIN STOCK — no aparece en tienda")
+        if not info["encontrado"] or info["stock"] == 0:
+            print(f"  🚨 SIN STOCK — no aparece en tienda o stock es 0")
             estado_global["productos"].append({
                 "nombre": nombre, "sku": sku,
                 "stock": 0, "estado": "danger",
@@ -175,7 +181,7 @@ def revisar_stock():
             registrar_alerta("danger", nombre, "Sin stock — no aparece en tienda")
             alertas_msg.append(f"🚨 SIN STOCK — {nombre} ({sku})")
 
-        elif info["stock"] > 0 and info["stock"] < minimo:
+        elif info["stock"] < minimo:
             print(f"  ⚠️  BAJO — {info['stock']} uds (mínimo: {minimo})")
             estado_global["productos"].append({
                 "nombre": nombre, "sku": sku,
@@ -201,7 +207,6 @@ def revisar_stock():
         enviar_whatsapp(wa_msg)
 
     # Reporte matutino si todo OK
-    hora_actual = datetime.now().strftime("%H:%M")
     if not alertas_msg and hora_actual == HORA_REVISION_1:
         wa_msg = f"✅ *Reporte Matutino*\n📅 {ahora}\n\nTodo en orden:\n"
         for p in estado_global["productos"]:
